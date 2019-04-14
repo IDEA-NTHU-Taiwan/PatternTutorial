@@ -1,7 +1,7 @@
-import pandas as pd
-import networkx as nx
 import patternlib.utils as utils
 import matplotlib.pyplot as plt
+import pandas as pd
+import networkx as nx
 import os
 import nltk
 
