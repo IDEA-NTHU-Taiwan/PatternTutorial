@@ -92,7 +92,7 @@ def minus(G1, G2):
     return G1
 
 
-def show(G):
+def show(G, seed=9527):
     """
     ref: 
     https://networkx.github.io/documentation/stable/auto_examples/drawing/plot_weighted_graph.html
@@ -101,7 +101,7 @@ def show(G):
     thr = 0.3
     elarge = [(u, v) for (u, v, d) in G.edges(data=True) if d['weight'] > thr]
     esmall = [(u, v) for (u, v, d) in G.edges(data=True) if d['weight'] <= thr]
-    pos = nx.spring_layout(G)
+    pos = nx.spring_layout(G, seed=seed)
     # nodes
     nx.draw_networkx_nodes(G, pos, node_size=120, alpha=0.3)
     # edges
@@ -114,5 +114,29 @@ def show(G):
     plt.show()
 
 
-
+def show_cwsw(G, cw_list, sw_list, seed=9527):
+    """
+    ref: 
+    https://networkx.github.io/documentation/stable/auto_examples/drawing/plot_weighted_graph.html
+    """
+    plt.figure(figsize=(30,30))
+    thr = 0.3
+    elarge = [(u, v) for (u, v, d) in G.edges(data=True) if d['weight'] > thr]
+    esmall = [(u, v) for (u, v, d) in G.edges(data=True) if d['weight'] <= thr]
+    # cw = [(u, v) for (u, v, d) in G.edges(data=True) if d['weight'] > thr]
+    # sw = [(u, v) for (u, v, d) in G.edges(data=True) if d['weight'] <= thr]
+    pos = nx.spring_layout(G, seed=seed)
+    # nodes
+    norm = [node for node in G.nodes() if node not in sw_list and node not in cw_list]
+    nx.draw_networkx_nodes(G, pos, node_size=80, alpha=0.3, nodelist=norm)
+    nx.draw_networkx_nodes(G, pos, node_size=120, alpha=0.3, node_color='b', nodelist=sw_list)
+    nx.draw_networkx_nodes(G, pos, node_size=120, alpha=0.3, node_color='r', nodelist=cw_list)
+    # edges
+    nx.draw_networkx_edges(G, pos, edgelist=elarge, width=1, edge_color='k')
+    nx.draw_networkx_edges(G, pos, edgelist=esmall, width=0.6, alpha=0.5, 
+                           edge_color='c', style='dashed')
+    # labels
+    nx.draw_networkx_labels(G, pos, font_size=12, font_family='sans-serif')
+    plt.axis('off')
+    plt.show()
 
