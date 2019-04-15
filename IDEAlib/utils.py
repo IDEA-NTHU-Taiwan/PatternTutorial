@@ -20,13 +20,6 @@ def dict2df(dict_, key_col='token', val_col='value'):
     return df
 
 
-def token2CWSWlist(df, threshold, key_col='token', val_col='value'):
-    """
-    return the `np.appry` type of CW/SW list
-    """
-    return df[df[val_col]>=threshold][key_col].values
-
-
 ## multiprocessing
 def _apply_df(args):
     df, func, pattern_dict, label_list, pattern_templates = args

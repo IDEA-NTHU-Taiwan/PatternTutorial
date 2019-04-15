@@ -1,4 +1,4 @@
-import patternlib.utils as utils
+import IDEAlib.utils as utils
 import matplotlib.pyplot as plt
 import pandas as pd
 import networkx as nx
@@ -12,7 +12,7 @@ TODO:
 
 """
 
-def ngramGraph(textlist, gram_n=2, space_token='_space_', 
+def ngramGraph(text, gram_n=2, space_token='_space_', 
                max_norm=True, take_ratio=1.0, freq_threshold=3):
     """
     # input: list of tokenized text
@@ -20,10 +20,10 @@ def ngramGraph(textlist, gram_n=2, space_token='_space_',
 
     # example: 
 
-      textlist = [['to', 'infinity', 'and', 'beyond'], 
+      text = [['to', 'infinity', 'and', 'beyond'], 
                   ['sharon', 'is', 'not', 'white']]
 
-      my_graph = ngramGraph(textlist)
+      my_graph = ngramGraph(text)
 
 
     # ref: 
@@ -31,7 +31,7 @@ def ngramGraph(textlist, gram_n=2, space_token='_space_',
     ---
     # args:
 
-    - textlist: input text, it should be `np.array` or `list` type.
+    - text: input text, it should be `np.array` or `list` type.
     - gram_n: the distance between tokens you concerned.
     - space_token: the token to replace the space in text.
     - max_norm: using max-frequency to normalize (T/F).
@@ -42,7 +42,7 @@ def ngramGraph(textlist, gram_n=2, space_token='_space_',
 
     # split text to gram
     n_gram_list = []
-    for test in textlist:
+    for test in text:
         n_gram_list += list(nltk.ngrams(test, n=gram_n))
 
     freq_dist = nltk.FreqDist(n_gram_list)
@@ -70,11 +70,11 @@ def ngramGraph(textlist, gram_n=2, space_token='_space_',
     ngramGraph.add_weighted_edges_from(weighted_edges_list)
 
     print('Graph constructed from ({}) texts, there are ({}) nodes in this graph.'.
-          format(len(textlist), len(ngramGraph)))
+          format(len(text), len(ngramGraph)))
     return ngramGraph
 
 
-def graph_calculate(graph):
+def measure_ec_cc(graph):
     """
     # input: `networkx` undirected graph
 
@@ -87,12 +87,12 @@ def graph_calculate(graph):
     return df_ec, df_cc
 
 
-def graph_minus(G1, G2):
+def minus(G1, G2):
     print('not finish, return G1')
     return G1
 
 
-def show_graph(G):
+def show(G):
     """
     ref: 
     https://networkx.github.io/documentation/stable/auto_examples/drawing/plot_weighted_graph.html

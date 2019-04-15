@@ -1,7 +1,15 @@
-import patternlib.utils as utils
+import IDEAlib.utils as utils
 import multiprocessing
 import pandas as pd
 import nltk
+
+
+def listcwsw(df, threshold, key_col='token', val_col='value'):
+    """
+    return the `np.appry` type of CW/SW list
+    """
+    return df[df[val_col]>=threshold][key_col].values
+
 
 def token2cwsw(tokens, cw_list, sw_list, cw_token='cw', 
                sw_token='sw', none_token='_', both_token='both'):
@@ -31,13 +39,13 @@ def list_match(l1, l2):
 
 
 
-def build_patternDict(df, label_list, pattern_templates, n_jobs=-1):
+def patternDict(df, label_list, pattern_templates, n_jobs=-1):
 
     if n_jobs == 1:
         ## no mp
         pattern_dict = dict()
-        build_patternDict_(df=df, pattern_dict=pattern_dict, 
-                           label_list=label_list, pattern_templates=pattern_templates)
+        patternDict_(df=df, pattern_dict=pattern_dict,
+                     label_list=label_list, pattern_templates=pattern_templates)
     else:
         if n_jobs == -1:
             cores = multiprocessing.cpu_count() 
@@ -49,14 +57,14 @@ def build_patternDict(df, label_list, pattern_templates, n_jobs=-1):
         pattern_dict = manager.dict()
 
         # build pattern-dictionary
-        utils.apply_by_multiprocessing(df, build_patternDict_, 
+        utils.apply_by_multiprocessing(df, patternDict_, 
                                        pattern_dict=pattern_dict, label_list=label_list, 
                                        pattern_templates=pattern_templates, workers=cores)
     return pattern_dict
 
 
 
-def build_patternDict_(df, pattern_dict, label_list, pattern_templates):
+def patternDict_(df, pattern_dict, label_list, pattern_templates):
 
     cwsw_text = df['cwsw_text']
     tokenized_text = df['tokenized_text']
@@ -83,23 +91,23 @@ def build_patternDict_(df, pattern_dict, label_list, pattern_templates):
                 if pattern_get not in pattern_dict:
                     default_dict = {}
                     default_dict['template'] = ' '.join(cwsw_gram)
-                    default_dict['diversity'] = []
+                    default_dict['contents'] = []
                     for label_ in label_list:
                         default_dict[label_] = 0
                     pattern_dict[pattern_get] = default_dict
 
                 temp_dict = pattern_dict[pattern_get]
                 temp_dict[label] += 1
-                temp_dict['diversity'].append(token_ngram)
+                temp_dict['contents'].append(token_ngram)
                 pattern_dict[pattern_get] = temp_dict
 
 
 
-def build_patternDF(pattern_dict, label_list):
+def patternDF(pattern_dict, label_list):
     df_pattern = pd.DataFrame()
     pattern_list = list(pattern_dict.keys())
     df_pattern['pattern'] = pattern_list
-    col_list = ['template'] + label_list + ['diversity']
+    col_list = ['template'] + label_list + ['contents']
     temp_list = [[] for _ in range(len(col_list))]
     for pattern in pattern_list:
         for i, col in enumerate(col_list):
