@@ -80,7 +80,8 @@ def measure_ec_cc(graph):
 
     # output: `2 pd.DataFrame of eigenvector_centrality & clustering coefficitnt`    
     """
-    dict_ec = nx.eigenvector_centrality(graph)
+    # dict_ec = nx.eigenvector_centrality(graph)
+    dict_ec = nx.eigenvector_centrality_numpy(graph)
     dict_cc = nx.clustering(graph)
     df_ec = utils.dict2df(dict_ec, key_col='token', val_col='value')
     df_cc = utils.dict2df(dict_cc, key_col='token', val_col='value')
