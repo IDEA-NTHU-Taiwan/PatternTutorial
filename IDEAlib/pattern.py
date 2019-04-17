@@ -3,6 +3,13 @@ import multiprocessing
 import pandas as pd
 import nltk
 
+"""
+TODO:
+1. update the `patternDict` multiprocessing method
+
+
+"""
+
 
 def listcwsw(df, threshold, key_col='token', val_col='value'):
     """
@@ -39,13 +46,13 @@ def list_match(l1, l2):
 
 
 
-def patternDict(df, label_list, pattern_templates, n_jobs=-1):
+def patternDict(df, label_list, pattern_templates, label_col='emotion', n_jobs=-1):
 
     if n_jobs == 1:
         ## no mp
         pattern_dict = dict()
         patternDict_(df=df, pattern_dict=pattern_dict,
-                     label_list=label_list, pattern_templates=pattern_templates)
+                     label_list=label_list, pattern_templates=pattern_templates, label_col=label_col)
     else:
         if n_jobs == -1:
             cores = multiprocessing.cpu_count() 
@@ -57,18 +64,19 @@ def patternDict(df, label_list, pattern_templates, n_jobs=-1):
         pattern_dict = manager.dict()
 
         # build pattern-dictionary
-        utils.apply_by_multiprocessing(df, patternDict_, 
-                                       pattern_dict=pattern_dict, label_list=label_list, 
-                                       pattern_templates=pattern_templates, workers=cores)
+        utils.patternDict_multiprocessing(df, patternDict_, 
+                                          pattern_dict=pattern_dict, label_list=label_list, 
+                                          pattern_templates=pattern_templates, 
+                                          label_col=label_col, workers=cores)
     return pattern_dict
 
 
 
-def patternDict_(df, pattern_dict, label_list, pattern_templates):
+def patternDict_(df, pattern_dict, label_list, pattern_templates, label_col='emotion'):
 
     cwsw_text = df['cwsw_text']
     tokenized_text = df['tokenized_text']
-    label = df['emotion']
+    label = df[label_col]
 
     for target_pattern in pattern_templates:
         cwsw_ngrams = list(nltk.ngrams(cwsw_text, len(target_pattern))) 
@@ -77,6 +85,7 @@ def patternDict_(df, pattern_dict, label_list, pattern_templates):
         ## pattern rules defined here
         ## (I don't consider the `both` token here)
         for idx, cwsw_gram in enumerate(cwsw_ngrams):
+            # match `cwsw_gram` with `pattern_template` (target_pattern)
             if list_match(cwsw_gram, target_pattern):
                 token_ngram = token_ngrams[idx]
                 general_token_ngram = []
