@@ -1,7 +1,16 @@
+# from .graph  import *
+# from .utils  import *
+# from .pattern  import *
+
+# import matplotlib
+# matplotlib.use('TkAgg')
+
 import IDEAlib.utils 
-from IDEAlib.utils  import *
 import IDEAlib.graph 
-from IDEAlib.graph  import *
 import IDEAlib.pattern 
-from IDEAlib.pattern  import *
+
+# from IDEAlib.graph  import *
+# from IDEAlib.utils  import *
+# from IDEAlib.pattern  import *
+
 

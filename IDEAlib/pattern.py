@@ -51,8 +51,8 @@ def patternDict(df, label_list, pattern_templates, label_col='emotion', n_jobs=-
     if n_jobs == 1:
         ## no mp
         pattern_dict = dict()
-        patternDict_(df=df, pattern_dict=pattern_dict,
-                     label_list=label_list, pattern_templates=pattern_templates, label_col=label_col)
+        patternDict_(df=df, pattern_dict=pattern_dict, label_list=label_list, 
+                     pattern_templates=pattern_templates, label_col=label_col)
     else:
         if n_jobs == -1:
             cores = multiprocessing.cpu_count() 

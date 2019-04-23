@@ -75,23 +75,35 @@ def ngramGraph(text, gram_n=2, space_token='_space_',
     return ngramGraph
 
 
-def measure_ec_cc(graph, show_time=False):
+def eigenvector_centrality(graph, show_time=False):
     """
-    # input: `networkx` undirected graph
-
-    # output: `2 pd.DataFrame of eigenvector_centrality & clustering coefficitnt`    
-    """
-    # dict_ec = nx.eigenvector_centrality(graph)
+    input: graph, output: dataframe
+    """    
     st = time.time()
     dict_ec = nx.eigenvector_centrality_numpy(graph)
     if show_time:
-        print('eigenvector centrality cost: ', time.time()-st)
+        print('eigenvector centrality cost: {:.4f} sec'.format(time.time()-st))
+    df_ec = utils.dict2df(dict_ec, key_col='token', val_col='value')
+    return df_ec
+
+def clustering_coefficitnt(graph, show_time=False):
+    """
+    input: graph, output: dataframe
+    """
     st = time.time()
     dict_cc = nx.clustering(graph)
     if show_time:
-        print('clustering coefficitnt cost: ', time.time()-st)
-    df_ec = utils.dict2df(dict_ec, key_col='token', val_col='value')
+        print('clustering coefficitnt cost: {:.4f} sec'.format(time.time()-st))
     df_cc = utils.dict2df(dict_cc, key_col='token', val_col='value')
+    return df_cc
+
+def measure_ec_cc(graph, show_time=False):
+    """
+    # input: `networkx` undirected graph
+    # output: `2 pd.DataFrame of eigenvector_centrality & clustering coefficitnt`    
+    """
+    df_ec = eigenvector_centrality(graph, )
+    df_cc = clustering_coefficitnt(graph, show_time)
     return df_ec, df_cc
 
 
