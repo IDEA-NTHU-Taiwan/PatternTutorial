@@ -1,10 +1,13 @@
 import IDEAlib.utils as utils
 import matplotlib.pyplot as plt
+import multiprocessing as mp
 import pandas as pd
 import networkx as nx
 import os
 import nltk
 import time
+
+
 
 """
 TODO:
@@ -13,7 +16,7 @@ TODO:
 
 """
 
-def ngramGraph(text, gram_n=2, space_token='_space_', 
+def ngramGraph(texts=None, text=None, gram_n=2, space_token='_space_', 
                max_norm=True, take_ratio=1.0, freq_threshold=3):
     """
     # input: list of tokenized text
@@ -21,7 +24,7 @@ def ngramGraph(text, gram_n=2, space_token='_space_',
 
     # example: 
 
-      text = [['to', 'infinity', 'and', 'beyond'], 
+      texts = [['to', 'infinity', 'and', 'beyond'], 
                   ['sharon', 'is', 'not', 'white']]
 
       my_graph = ngramGraph(text)
@@ -40,11 +43,20 @@ def ngramGraph(text, gram_n=2, space_token='_space_',
     - freq_threshold: the freq threshold of tokens to construct the graph.
 
     """
-
+    
+    if text:
+        print('\nVariable "text" will be remove in next version, please refer to Variable "texts"\n')
+        texts = text
+        
+    if not texts:
+        print('\nEmpty input variable "texts".')
+        return
+    
     # split text to gram
     n_gram_list = []
-    for test in text:
-        n_gram_list += list(nltk.ngrams(test, n=gram_n))
+
+    for text in texts:
+        n_gram_list += list(nltk.ngrams(text, n=gram_n))
 
     freq_dist = nltk.FreqDist(n_gram_list)
 
@@ -86,15 +98,28 @@ def eigenvector_centrality(graph, show_time=False):
     df_ec = utils.dict2df(dict_ec, key_col='token', val_col='value')
     return df_ec
 
-def clustering_coefficitnt(graph, show_time=False):
+def clustering_coefficitnt(graph, show_time=False, triangle_threshold=0):
+    print('"clustering_coefficient()" is spelling error function name, please refer to "clustering_coefficient(graph, show_time=False, triangle_threshold=0)" in the future.\n')
+    
+    return clustering_coefficient(graph, show_time=show_time, triangle_threshold=triangle_threshold)
+
+def clustering_coefficient(graph, show_time=False, triangle_threshold=0):
     """
     input: graph, output: dataframe
     """
     st = time.time()
     dict_cc = nx.clustering(graph)
-    if show_time:
-        print('clustering coefficitnt cost: {:.4f} sec'.format(time.time()-st))
+    
     df_cc = utils.dict2df(dict_cc, key_col='token', val_col='value')
+    
+    if triangle_threshold > 0:
+        df_tri = nx.triangles(graph)
+        filtered_words = [k for k, v in dict_cc.items() if v >= triangle_threshold]
+        df_cc = df_cc[~df_cc['token'].isin(filtered_words)]
+        
+    if show_time:
+        print('clustering coefficient cost: {:.4f} sec'.format(time.time()-st))
+        
     return df_cc
 
 def measure_ec_cc(graph, show_time=False):
@@ -121,7 +146,7 @@ def show(G, seed=9527):
     thr = 0.3
     elarge = [(u, v) for (u, v, d) in G.edges(data=True) if d['weight'] > thr]
     esmall = [(u, v) for (u, v, d) in G.edges(data=True) if d['weight'] <= thr]
-    pos = nx.spring_layout(G, seed=seed)
+    pos = nx.spring_layout(G)
     # nodes
     nx.draw_networkx_nodes(G, pos, node_size=120, alpha=0.3)
     # edges
@@ -145,7 +170,7 @@ def show_cwsw(G, cw_list, sw_list, seed=9527):
     esmall = [(u, v) for (u, v, d) in G.edges(data=True) if d['weight'] <= thr]
     # cw = [(u, v) for (u, v, d) in G.edges(data=True) if d['weight'] > thr]
     # sw = [(u, v) for (u, v, d) in G.edges(data=True) if d['weight'] <= thr]
-    pos = nx.spring_layout(G, seed=seed)
+    pos = nx.spring_layout(G)
     # nodes
     norm = [node for node in G.nodes() if node not in sw_list and node not in cw_list]
     nx.draw_networkx_nodes(G, pos, node_size=80, alpha=0.3, nodelist=norm)
