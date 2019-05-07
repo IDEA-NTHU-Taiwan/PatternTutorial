@@ -82,8 +82,8 @@ def ngramGraph(texts=None, text=None, gram_n=2, space_token='_space_',
         weighted_edges_list.append((token_1, token_2, val/max_value))
     ngramGraph.add_weighted_edges_from(weighted_edges_list)
 
-    print('Graph constructed from ({}) texts, there are ({}) nodes in this graph.'.
-          format(len(text), len(ngramGraph)))
+    print('Graph constructed from ({}) sentences, there are ({}) nodes(tokens) in this graph.'.
+          format(len(texts), len(ngramGraph)))
     return ngramGraph
 
 
