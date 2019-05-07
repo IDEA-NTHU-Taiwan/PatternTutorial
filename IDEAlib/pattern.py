@@ -25,10 +25,11 @@ def token2cwsw(tokens, cw_list, sw_list, cw_token='cw',
     """
     cwsw_list = []
     for token in tokens:
-        if token in cw_list and token in sw_list:
-            cwsw_list.append(both_token)
-        elif token in cw_list:
-            cwsw_list.append(cw_token)
+        if token in cw_list 
+            if token in sw_list:
+                cwsw_list.append(both_token)
+            else:
+                cwsw_list.append(cw_token)
         elif token in sw_list:
             cwsw_list.append(sw_token)
         else:
