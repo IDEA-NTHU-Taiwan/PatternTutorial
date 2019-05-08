@@ -47,11 +47,7 @@ def ngramGraph(texts=None, text=None, gram_n=2, space_token='_space_',
     if text:
         print('\nVariable "text" will be remove in next version, please refer to Variable "texts"\n')
         texts = text
-        
-    if not texts:
-        print('\nEmpty input variable "texts".')
-        return
-    
+
     # split text to gram
     n_gram_list = []
 
