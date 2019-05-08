@@ -25,7 +25,7 @@ def token2cwsw(tokens, cw_list, sw_list, cw_token='cw',
     """
     cwsw_list = []
     for token in tokens:
-        if token in cw_list 
+        if token in cw_list:
             if token in sw_list:
                 cwsw_list.append(both_token)
             else:
@@ -47,45 +47,54 @@ def list_match(l1, l2):
 
 
 
-def patternDict(df, label_list, pattern_templates, label_col='emotion', n_jobs=-1):
+def patternDict(df, label_list, pattern_templates, label_col='emotion', n_jobs=-1, token_column='tokenized_text', cwsw_column = 'cwsw_text'):
 
-    if n_jobs == 1:
-        ## no mp
-        pattern_dict = dict()
-        patternDict_(df=df, pattern_dict=pattern_dict, label_list=label_list, 
-                     pattern_templates=pattern_templates, label_col=label_col)
+#     if n_jobs == 1:
+#         ## no mp
+#         pattern_dict = dict()
+
+#         patternDict_(df=df, pattern_dict=pattern_dict, label_list=label_list, 
+#                      pattern_templates=pattern_templates, label_col=label_col,
+#                      token_column=token_column, cwsw_column=cwsw_column
+#                     )
+    
+#         print(len(pattern_dict))
+        
+#     else:
+    
+    if n_jobs == -1:
+        cores = multiprocessing.cpu_count() 
     else:
-        if n_jobs == -1:
-            cores = multiprocessing.cpu_count() 
-        else:
-            cores = int(n_jobs)
+        cores = int(n_jobs)
 
-        # a memory-shared dictionary `pattern_dict`
-        manager = multiprocessing.Manager()
-        pattern_dict = manager.dict()
+    # a memory-shared dictionary `pattern_dict`
+    manager = multiprocessing.Manager()
+    pattern_dict = manager.dict()
 
-        # build pattern-dictionary
-        utils.patternDict_multiprocessing(df, patternDict_, 
-                                          pattern_dict=pattern_dict, label_list=label_list, 
-                                          pattern_templates=pattern_templates, 
-                                          label_col=label_col, workers=cores)
+    # build pattern-dictionary
+    utils.patternDict_multiprocessing(df, patternDict_, 
+                                      pattern_dict=pattern_dict, label_list=label_list, 
+                                      pattern_templates=pattern_templates, 
+                                      label_col=label_col, workers=cores,
+                                      token_column=token_column, cwsw_column=cwsw_column
+                                     )
     return pattern_dict
 
 
 
-def patternDict_(df, pattern_dict, label_list, pattern_templates, label_col='emotion'):
+def patternDict_(df, pattern_dict, label_list, pattern_templates, label_col='emotion', token_column='tokenized_text', cwsw_column = 'cwsw_text'):
 
-    cwsw_text = df['cwsw_text']
-    tokenized_text = df['tokenized_text']
+    cwsw_text = df[cwsw_column]
+    tokenized_text = df[token_column]
     label = df[label_col]
-
     for target_pattern in pattern_templates:
+                
         cwsw_ngrams = list(nltk.ngrams(cwsw_text, len(target_pattern))) 
         token_ngrams = list(nltk.ngrams(tokenized_text, len(target_pattern))) 
-
         ## pattern rules defined here
         ## (I don't consider the `both` token here)
         for idx, cwsw_gram in enumerate(cwsw_ngrams):
+            
             # match `cwsw_gram` with `pattern_template` (target_pattern)
             if list_match(cwsw_gram, target_pattern):
                 token_ngram = token_ngrams[idx]
