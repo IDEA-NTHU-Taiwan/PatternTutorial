@@ -22,13 +22,16 @@ def dict2df(dict_, key_col='token', val_col='value'):
 
 ## multiprocessing
 def pD_apply_df(args):
-    df, func, pattern_dict, label_list, pattern_templates, label_col = args
-    return df.apply(lambda x: func(x, pattern_dict, label_list, pattern_templates, label_col), axis=1)
+    df, func, pattern_dict, label_list, pattern_templates, label_col, token_column, cwsw_column = args
+    return df.apply(lambda x: func(x, pattern_dict, label_list, pattern_templates, label_col, token_column, cwsw_column),
+                    axis=1)
 
 def patternDict_multiprocessing(df, func, pattern_dict, label_list, pattern_templates, label_col, **kwargs):
     workers = kwargs.pop('workers')
+    token_column = kwargs.pop('token_column')
+    cwsw_column = kwargs.pop('cwsw_column')
     pool = multiprocessing.Pool(processes=workers)
-    pool.map(pD_apply_df, [(d, func, pattern_dict, label_list, pattern_templates, label_col) for d in np.array_split(df, workers)])
+    pool.map(pD_apply_df, [(d, func, pattern_dict, label_list, pattern_templates, label_col, token_column, cwsw_column) for d in np.array_split(df, workers)])
     pool.close()
     # return pd.concat(list(result))
 
