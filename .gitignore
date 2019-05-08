@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 .ipynb_checkpoints
 .ipynb_checkpoints/
+pattern_dir/
 
 # mac
 .DS_Store
