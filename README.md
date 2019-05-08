@@ -1,5 +1,5 @@
 # PatternTutorial
-A Graph-based Pattern Representations Tutorial
+A Graph-based Pattern Representations with tutorial
 
 #### Easy Reading: [nbviewer](https://nbviewer.jupyter.org/github/IDEA-NTHU-Taiwan/PatternTutorial/blob/master/Graph-based%20Pattern%20Representations%20Tutorial.ipynb)
 
@@ -11,6 +11,11 @@ A Graph-based Pattern Representations Tutorial
 
 #### Author: [Ray](https://github.com/thisray), [Evan](https://github.com/EvanYu800112)
 
+#### Developping
+for developer
+```
+PatternTutorial$ pip3 install --user --editable .
+```
 #### Libraries requirements
 `matplotlib`, `networkx`, `nltk`, `numpy`, `pandas`, `IDEAlib` (in this repo)
 
@@ -37,5 +42,5 @@ Saravia Elvis, Hsien-Chi Toby Liu, Yen-Hao Huang, Junlin Wu, and Yi-Shin Chen. "
 5. the rule of `both`
 6. patternize function
 7. make `token2cwsw()` prettier
-8. 
+8. Unit testing 
 
