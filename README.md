@@ -42,5 +42,5 @@ Saravia Elvis, Hsien-Chi Toby Liu, Yen-Hao Huang, Junlin Wu, and Yi-Shin Chen. "
 5. the rule of `both`
 6. patternize function
 7. make `token2cwsw()` prettier
-8. Unit testing 
+8. Unit testing!!!!!! 
 
