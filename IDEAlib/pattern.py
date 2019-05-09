@@ -1,6 +1,7 @@
 import IDEAlib.utils as utils
 import multiprocessing
 import pandas as pd
+import numpy as np
 import nltk
 
 """
@@ -225,4 +226,24 @@ def patternDict_(df, pattern_dict, label_list, pattern_templates,
 
 
 
+def weight_pattern(df, label_list=['anger','sadness'], pattern_contents='contents',
+                   weight='pfief', diversity=True, nums_threh=2):
+    
+    if weight =='pfief':
+        df['total'] = df.loc[:,label_list].sum(axis=1)
+        df = df[df.total > nums_threh]
 
+        pf = df[label_list].div(df.total, axis=0)
+        label_exist = df[label_list].apply(lambda n: n>0)
+        ief = label_exist.div(label_exist.sum(axis=1), axis=0)
+
+        pfief = pf.mul(ief)
+
+        if diversity:
+            divrsty = np.log(df.contents.apply(lambda contents: len(set(contents))))
+            pfief = pfief.mul(divrsty, axis=0)
+
+        return df.join(pfief, rsuffix='_pfief')
+    else:
+        print('\nThere is no other weighting yet ^^"\n')
+    
