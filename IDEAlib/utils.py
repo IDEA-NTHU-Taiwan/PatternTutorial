@@ -39,11 +39,16 @@ def apply_by_multiprocessing(df, func, **kwargs):
     result = pool.map(_apply_df, [(d, func, kwargs) for d in np.array_split(df, workers)])
     pool.close()
     series = pd.concat(list(result))
+
+    ## TODO: make here beautiful
     if coln == 1:
         return series
     elif coln == 2:
         series_0, series_1 = series.apply(lambda x: x[0]), series.apply(lambda x: x[1])
         return series_0, series_1
+    elif coln == 3:
+        series_0, series_1, series_2 = series.apply(lambda x: x[0]), series.apply(lambda x: x[1]), series.apply(lambda x: x[2])
+        return series_0, series_1, series_2    
 
 
 

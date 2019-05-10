@@ -1,4 +1,5 @@
 import IDEAlib.utils as utils
+from functools import partial
 import multiprocessing
 import pandas as pd
 import numpy as np
@@ -42,6 +43,7 @@ def text2pattern(row, pattern_templates, token_column='tokenized_text', cwsw_col
                   cw_token='cw', sw_token='sw', none_token='_', both_token='both'):
     pattern_list = []
     pattern_content_list = []
+    pattern_template_list = []
     cwsw_text = row[cwsw_column]
     tokenized_text = row[token_column]
     pattern_lens = list(set([len(pattern_template) for pattern_template in pattern_templates]))
@@ -50,15 +52,16 @@ def text2pattern(row, pattern_templates, token_column='tokenized_text', cwsw_col
             target_pattern_len = len(target_pattern)
             if idx + target_pattern_len >= len(tokenized_text):
                 continue
-            patterns = pattern_match(cwsw=cwsw_text[idx:idx+target_pattern_len], 
-                                     token=tokenized_text[idx:idx+target_pattern_len], 
-                                     cw_token=cw_token, sw_token=sw_token, none_token=none_token,
-                                     target_pattern=target_pattern, both_token=both_token)
+            patterns, pattern_temps = pattern_match(cwsw=cwsw_text[idx:idx+target_pattern_len], 
+                                                    token=tokenized_text[idx:idx+target_pattern_len], 
+                                                    cw_token=cw_token, sw_token=sw_token, none_token=none_token,
+                                                    target_pattern=target_pattern, both_token=both_token)
             if patterns:
-                for pattern in patterns:
+                for pattern, pattern_temp in zip(patterns, pattern_temps):
                     pattern_list.append(pattern)
                     pattern_content_list.append(tokenized_text[idx:idx+target_pattern_len])
-    return pattern_list, pattern_content_list
+                    pattern_template_list.append(pattern_temp)
+    return pattern_list, pattern_content_list, pattern_template_list
 
 def replace_both(token_list, cw_token, sw_token, both_token):
     rep_token_list = [token_list.copy() for _ in range(2)]
@@ -80,6 +83,7 @@ def pattern_match(cwsw, token, target_pattern, cw_token, sw_token, none_token, b
                 both_flatten.pop(idx)
                 break
     patterns = []
+    pattern_temps = []
     for cwsw_ in both_flatten:
         pattern = []
         for idx in range(len(cwsw_)):
@@ -91,23 +95,97 @@ def pattern_match(cwsw, token, target_pattern, cw_token, sw_token, none_token, b
                 pattern.append('*')
         if len(pattern) == len(cwsw_):
             patterns.append(pattern)
-    return patterns
+            pattern_temps.append(cwsw_)
+    return patterns, pattern_temps
 
 
-def patternDict(pattern_col=None, workers=-1, **kwargs):
-    if 'df' in kwargs:
+def patternDict(df, pattern_col=None, pattern_content_col=None, pattern_template_col=None, 
+                label_col=None, workers=-1, **kwargs):
+    if 'label_list' in kwargs:
         print('\n**Warning**: \nyou are using the past (slower) version of `patternDict()`, remember to update your IDEAlib & see the new example on github')
-        df, label_list = kwargs.pop('df'), kwargs.pop('label_list')
+        label_list = kwargs.pop('label_list')
         pattern_templates, n_jobs = kwargs.pop('pattern_templates'), kwargs.pop('n_jobs')
         return patternDict_past(df=df, label_list=label_list, pattern_templates=pattern_templates, n_jobs=n_jobs)
-    if type(pattern_col) == np.ndarray:
-        pattern_array = pattern_col
-    elif type(pattern_col) == pd.Series:
-        pattern_array = pattern_col.values
+
+    col_list = [pattern_col, pattern_content_col, pattern_template_col, label_col]
+    df = df[col_list]
+    if workers == -1:
+        workers = multiprocessing.cpu_count() 
+    pool = multiprocessing.Pool(processes=workers)
+    func = partial(patternDict_, col_list=col_list)
+    part_dicks = pool.map(func, [(d) for d in np.array_split(df, workers)])
+    pool.close()
+
+    ## merge dict
+    label_unique = np.unique(df[label_col].values)
+    print('label_unique: ', label_unique)
+    pattern_dict = dict()
+    for part_dict in part_dicks:
+        for key in part_dict:
+            if key not in pattern_dict:
+                pattern_dict[key] = part_dict[key].copy()
+            else:
+                pattern_dict[key]['contents'] += part_dict[key]['contents']
+                for label_key in label_unique:
+                    pattern_dict[key][label_key] += part_dict[key][label_key]
+    return pattern_dict
+
+def patternDict_(df, col_list, str_type=True):
+    """
+    ** Now using for-loop iter, maybe there are some optimized methods. **
+    """
+    pattern_col, pattern_content_col, pattern_template_col, label_col = col_list
+    # df['emo_n'] = df.apply(lambda row: [row[label_col] for _ in range(len(row[pattern_col]))], axis=1)
+    pattern_col = df[pattern_col].values
+    pattern_content_col = df[pattern_content_col].values
+    pattern_template_col = df[pattern_template_col].values
+    label_col = df[label_col].values
+    label_unique = np.unique(label_col)
+    # print('label_unique: ', label_unique)
+
+    """
+    part_dict[`pattern`][`template`(str), `contents`(str in list), `each label`]
+    (`pattern` is the key of part_dict)
+    """
+    part_dict = dict()
+    for idx_row, patterns in enumerate(pattern_col):
+        label = label_col[idx_row]
+        for idx_in, pattern in enumerate(patterns):
+            pattern_content = pattern_content_col[idx_row][idx_in]
+            pattern_template = pattern_template_col[idx_row][idx_in]
+            if str_type:
+                pattern = ' '.join(pattern)
+                pattern_template = ' '.join(pattern_template)
+            if pattern not in part_dict: # init
+                part_dict[pattern] = {}
+                for each_label in label_unique:
+                    part_dict[pattern][each_label] = 0
+                part_dict[pattern]['contents'] = []
+                part_dict[pattern]['template'] = pattern_template
+            part_dict[pattern][label] += 1
+            part_dict[pattern]['contents'].append(pattern_content)
+    return part_dict
+
+
+
+def weight_pattern(df, label_list=['anger','sadness'], pattern_contents='contents',
+                   weight='pfief', diversity=True, nums_threshold=2):
+    import warnings
+    warnings.filterwarnings("ignore")
+    if weight =='pfief':
+        df['total'] = df.loc[:,label_list].sum(axis=1)
+        df = df[df.total > nums_threshold]
+        pf = df[label_list].div(df.total, axis=0)
+        label_exist = df[label_list].apply(lambda n: n>0)
+        ief = label_exist.div(label_exist.sum(axis=1), axis=0)
+        pfief = pf.mul(ief)
+        if diversity:
+            df[pattern_contents] = df[pattern_contents].apply(lambda x: [tuple(t) for t in x])
+            divrsty = np.log(df[pattern_contents].apply(lambda contents: len(set(contents))))
+            pfief = pfief.mul(divrsty, axis=0)
+        return df.join(pfief, rsuffix='_pfief')
     else:
-        print('error')
-        return dict()
-    ## TODO !
+        print('\nThere is no other weighting yet ^^"\n')
 
 def patternDF(pattern_dict, label_list):
     df_pattern = pd.DataFrame()
@@ -158,7 +236,7 @@ def patternDict_past(df, label_list, pattern_templates, label_col='emotion', n_j
     pattern_dict = manager.dict()
 
     # build pattern-dictionary
-    utils.apply_by_multiprocessing(df, patternDict_, 
+    utils.apply_by_multiprocessing(df, patternDict_past_, 
                                    pattern_dict=pattern_dict, label_list=label_list, 
                                    pattern_templates=pattern_templates, 
                                    label_col=label_col, workers=cores,
@@ -169,8 +247,8 @@ def patternDict_past(df, label_list, pattern_templates, label_col='emotion', n_j
 
 
 
-def patternDict_(df, pattern_dict, label_list, pattern_templates, 
-                 label_col='emotion', token_column='tokenized_text', cwsw_column='cwsw_text'):
+def patternDict_past_(df, pattern_dict, label_list, pattern_templates, 
+                      label_col='emotion', token_column='tokenized_text', cwsw_column='cwsw_text'):
 
     cwsw_text = df[cwsw_column]
     tokenized_text = df[token_column]
@@ -226,24 +304,4 @@ def patternDict_(df, pattern_dict, label_list, pattern_templates,
 
 
 
-def weight_pattern(df, label_list=['anger','sadness'], pattern_contents='contents',
-                   weight='pfief', diversity=True, nums_threh=2):
-    
-    if weight =='pfief':
-        df['total'] = df.loc[:,label_list].sum(axis=1)
-        df = df[df.total > nums_threh]
 
-        pf = df[label_list].div(df.total, axis=0)
-        label_exist = df[label_list].apply(lambda n: n>0)
-        ief = label_exist.div(label_exist.sum(axis=1), axis=0)
-
-        pfief = pf.mul(ief)
-
-        if diversity:
-            divrsty = np.log(df.contents.apply(lambda contents: len(set(contents))))
-            pfief = pfief.mul(divrsty, axis=0)
-
-        return df.join(pfief, rsuffix='_pfief')
-    else:
-        print('\nThere is no other weighting yet ^^"\n')
-    
