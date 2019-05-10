@@ -1,12 +1,14 @@
-import IDEAlib.utils as utils
-import matplotlib.pyplot as plt
 import multiprocessing as mp
-import pandas as pd
-import networkx as nx
 import os
-import nltk
 import time
 
+import matplotlib.pyplot as plt
+import networkx as nx
+import nltk
+import pandas as pd
+from tqdm import tqdm
+
+import IDEAlib.utils as utils
 
 
 """
@@ -16,7 +18,8 @@ TODO:
 
 """
 
-def ngramGraph(texts=None, text=None, gram_n=2, space_token='_space_', 
+
+def ngramGraph(texts=None, text=None, gram_n=2, space_token='_space_',
                max_norm=True, take_ratio=1.0, freq_threshold=3):
     """
     # input: list of tokenized text
@@ -43,7 +46,7 @@ def ngramGraph(texts=None, text=None, gram_n=2, space_token='_space_',
     - freq_threshold: the freq threshold of tokens to construct the graph.
 
     """
-    
+
     if text:
         print('\nVariable "text" will be remove in next version, please refer to Variable "texts"\n')
         texts = text
@@ -57,15 +60,12 @@ def ngramGraph(texts=None, text=None, gram_n=2, space_token='_space_',
     freq_dist = nltk.FreqDist(n_gram_list)
 
     # max_norm T/F
-    if max_norm:
-        max_value = freq_dist.most_common(1)[-1][-1]
-    else:
-        max_value = 1
+    max_value = freq_dist.most_common(1)[-1][-1] if max_norm else 1
 
     # construct graph
     ngramGraph = nx.Graph()
     weighted_edges_list = []
-    for key, val in freq_dist.most_common(int(len(freq_dist)*take_ratio)):
+    for key, val in tqdm(freq_dist.most_common(int(len(freq_dist)*take_ratio)), desc='constructing graph'):
         if val < freq_threshold:
             continue
         token_1, token_2 = key
@@ -86,7 +86,7 @@ def ngramGraph(texts=None, text=None, gram_n=2, space_token='_space_',
 def eigenvector_centrality(graph, show_time=False):
     """
     input: graph, output: dataframe
-    """    
+    """
     st = time.time()
     dict_ec = nx.eigenvector_centrality_numpy(graph)
     if show_time:
@@ -94,10 +94,12 @@ def eigenvector_centrality(graph, show_time=False):
     df_ec = utils.dict2df(dict_ec, key_col='token', val_col='value')
     return df_ec
 
+
 def clustering_coefficitnt(graph, show_time=False, triangle_threshold=0):
     print('"clustering_coefficient()" is spelling error function name, please refer to "clustering_coefficient(graph, show_time=False, triangle_threshold=0)" in the future.\n')
-    
+
     return clustering_coefficient(graph, show_time=show_time, triangle_threshold=triangle_threshold)
+
 
 def clustering_coefficient(graph, show_time=False, triangle_threshold=0):
     """
@@ -105,18 +107,20 @@ def clustering_coefficient(graph, show_time=False, triangle_threshold=0):
     """
     st = time.time()
     dict_cc = nx.clustering(graph)
-    
+
     df_cc = utils.dict2df(dict_cc, key_col='token', val_col='value')
-    
+
     if triangle_threshold > 0:
         df_tri = nx.triangles(graph)
-        filtered_words = [k for k, v in dict_cc.items() if v >= triangle_threshold]
+        filtered_words = [k for k, v in dict_cc.items() if v >=
+                          triangle_threshold]
         df_cc = df_cc[~df_cc['token'].isin(filtered_words)]
-        
+
     if show_time:
         print('clustering coefficient cost: {:.4f} sec'.format(time.time()-st))
-        
+
     return df_cc
+
 
 def measure_ec_cc(graph, show_time=False):
     """
@@ -138,7 +142,7 @@ def show(G, seed=9527):
     ref: 
     https://networkx.github.io/documentation/stable/auto_examples/drawing/plot_weighted_graph.html
     """
-    plt.figure(figsize=(30,30))
+    plt.figure(figsize=(30, 30))
     thr = 0.3
     elarge = [(u, v) for (u, v, d) in G.edges(data=True) if d['weight'] > thr]
     esmall = [(u, v) for (u, v, d) in G.edges(data=True) if d['weight'] <= thr]
@@ -147,7 +151,7 @@ def show(G, seed=9527):
     nx.draw_networkx_nodes(G, pos, node_size=120, alpha=0.3)
     # edges
     nx.draw_networkx_edges(G, pos, edgelist=elarge, width=1, edge_color='k')
-    nx.draw_networkx_edges(G, pos, edgelist=esmall, width=0.6, alpha=0.5, 
+    nx.draw_networkx_edges(G, pos, edgelist=esmall, width=0.6, alpha=0.5,
                            edge_color='c', style='dashed')
     # labels
     nx.draw_networkx_labels(G, pos, font_size=12, font_family='sans-serif')
@@ -160,7 +164,7 @@ def show_cwsw(G, cw_list, sw_list, seed=9527):
     ref: 
     https://networkx.github.io/documentation/stable/auto_examples/drawing/plot_weighted_graph.html
     """
-    plt.figure(figsize=(30,30))
+    plt.figure(figsize=(30, 30))
     thr = 0.3
     elarge = [(u, v) for (u, v, d) in G.edges(data=True) if d['weight'] > thr]
     esmall = [(u, v) for (u, v, d) in G.edges(data=True) if d['weight'] <= thr]
@@ -168,16 +172,18 @@ def show_cwsw(G, cw_list, sw_list, seed=9527):
     # sw = [(u, v) for (u, v, d) in G.edges(data=True) if d['weight'] <= thr]
     pos = nx.spring_layout(G)
     # nodes
-    norm = [node for node in G.nodes() if node not in sw_list and node not in cw_list]
+    norm = [node for node in G.nodes(
+    ) if node not in sw_list and node not in cw_list]
     nx.draw_networkx_nodes(G, pos, node_size=80, alpha=0.3, nodelist=norm)
-    nx.draw_networkx_nodes(G, pos, node_size=120, alpha=0.3, node_color='b', nodelist=sw_list)
-    nx.draw_networkx_nodes(G, pos, node_size=120, alpha=0.3, node_color='r', nodelist=cw_list)
+    nx.draw_networkx_nodes(G, pos, node_size=120, alpha=0.3,
+                           node_color='b', nodelist=sw_list)
+    nx.draw_networkx_nodes(G, pos, node_size=120, alpha=0.3,
+                           node_color='r', nodelist=cw_list)
     # edges
     nx.draw_networkx_edges(G, pos, edgelist=elarge, width=1, edge_color='k')
-    nx.draw_networkx_edges(G, pos, edgelist=esmall, width=0.6, alpha=0.5, 
+    nx.draw_networkx_edges(G, pos, edgelist=esmall, width=0.6, alpha=0.5,
                            edge_color='c', style='dashed')
     # labels
     nx.draw_networkx_labels(G, pos, font_size=12, font_family='sans-serif')
     plt.axis('off')
     plt.show()
-
