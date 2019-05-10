@@ -36,6 +36,7 @@ setup(
         'networkx',
         'nltk',
         'pandas',
+        'tqdm'
     ],
     python_requires='>=3.5.2',
     cmdclass={
