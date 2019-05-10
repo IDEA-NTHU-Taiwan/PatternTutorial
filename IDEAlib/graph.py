@@ -118,6 +118,7 @@ def clustering_coefficient(graph, show_time=False, triangle_threshold=0):
         
     return df_cc
 
+
 def measure_ec_cc(graph, show_time=False):
     """
     # input: `networkx` undirected graph
@@ -131,7 +132,6 @@ def measure_ec_cc(graph, show_time=False):
 def minus(G1, G2):
     print('not finish, return G1')
     return G1
-
 
 def show(G, seed=9527):
     """
@@ -180,4 +180,44 @@ def show_cwsw(G, cw_list, sw_list, seed=9527):
     nx.draw_networkx_labels(G, pos, font_size=12, font_family='sans-serif')
     plt.axis('off')
     plt.show()
+
+
+
+## ---------------------------------------------------------------------------
+
+## clustering_coefficient could be updated here
+
+def idea_clustering(G, nodes=None, weight=None):
+    # https://networkx.github.io/documentation/stable/_modules/networkx/algorithms/cluster.html#clustering
+    td_iter = _weighted_triangles_and_degree_iter(G, nodes, weight)
+    clusterc = {v: 0 if t == 0 else t / (d * (d - 1)) for v, d, t in td_iter}
+    return clusterc
+
+# from networkx.utils import not_implemented_for
+# @not_implemented_for('multigraph')
+def _weighted_triangles_and_degree_iter(G, nodes=None, weight='weight'):
+    if weight is None or G.number_of_edges() == 0:
+        max_weight = 1
+    else:
+        max_weight = max(d.get(weight, 1) for u, v, d in G.edges(data=True))
+    if nodes is None:
+        nodes_nbrs = G.adj.items()
+    else:
+        nodes_nbrs = ((n, G[n]) for n in G.nbunch_iter(nodes))
+    def wt(u, v):
+        return G[u][v].get(weight, 1) / max_weight
+    for i, nbrs in nodes_nbrs:
+        inbrs = set(nbrs) - {i}
+        weighted_triangles = 0
+        seen = set()
+        for j in inbrs:
+            seen.add(j)
+            # This prevents double counting.
+            jnbrs = set(G[j]) - seen
+            # Only compute the edge weight once, before the inner inner
+            # loop.
+            wij = wt(i, j)
+            weighted_triangles += sum((wij * wt(j, k) * wt(k, i)) ** (1 / 3)
+                                      for k in inbrs & jnbrs)
+        yield (i, len(inbrs), 2 * weighted_triangles)
 

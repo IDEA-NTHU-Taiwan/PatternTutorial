@@ -200,6 +200,25 @@ def patternDF(pattern_dict, label_list):
         df_pattern[col] = temp_list[i]
     return df_pattern
 
+def pattern_check(row, pattern_col, pattern_df):
+    pattern_list = row[pattern_col]
+    # if type(pattern_list[0]) is list:
+    #     pattern_list = [' '.join(x) for x in pattern_list]
+    pattern_list = [' '.join(x) for x in pattern_list]
+    pattern_pool = pattern_df['pattern'].values
+    check_list = []
+    for pattern in pattern_list:
+        if pattern in pattern_pool:
+            check_list.append(True)
+        else:
+            check_list.append(False)
+    return check_list
+
+def pattern_filter(row, pattern_col, patt_check_col):
+    pattern = row[pattern_col]
+    patt_check = row[patt_check_col]
+    pattern_final = [patt for i, patt in enumerate(pattern) if patt_check[i]]
+    return pattern_final
 
 ## ------------------------------------------------------------------------ ##
 

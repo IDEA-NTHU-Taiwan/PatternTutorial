@@ -36,5 +36,7 @@ Saravia Elvis, Hsien-Chi Toby Liu, Yen-Hao Huang, Junlin Wu, and Yi-Shin Chen. "
 
 2. graph minus
 8. Unit testing 
-9. new text to pattern list
+10. diversty & label (`tfief` part)
+11. integrate the type of pattern (now we have `list`, `tuple`, `str` XD)
+12. speedup cc (graph things)
 
