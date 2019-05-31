@@ -13,6 +13,69 @@ TODO:
 """
 
 
+class PatternTree():
+    def __init__(self, df_pattern_weight, pattern_column, weight_columns):
+        self.pattern_tree = {'sub_tree':{}}
+        self.pattern_vectors = np.zeros((df_pattern_weight.shape[0], len(weight_columns)))
+        self.id2pattern = []
+        self.pattern_max_len = max([len(pattern.split())
+                                    for pattern in df_pattern_weight[pattern_column].tolist()]
+                                  )
+        self.build_tree(df_pattern_weight, pattern_column, weight_columns)
+    
+    def build_tree(self, df_pattern_weight, pattern_column, weight_columns):
+        for i, (pattern, vector) in enumerate(zip(df_pattern_weight[pattern_column],
+                                              df_pattern_weight[weight_columns].values)
+                                             ):
+            token_pattern = pattern.split()
+            token_len = len(token_pattern)
+            sub_tree = self.pattern_tree.get('sub_tree')
+            for w_i in range(token_len-1):
+                if sub_tree.get(token_pattern[w_i]) == None:
+                    sub_tree[token_pattern[w_i]] = {'pattern_idx':-1, 'sub_tree':{}}
+                sub_tree = sub_tree.get(token_pattern[w_i]).get('sub_tree')
+            # last token of pattern, insert pattern idx
+            if sub_tree.get(token_pattern[-1]) == None:
+                sub_tree[token_pattern[-1]] = {'pattern_idx':i, 'sub_tree':{}}
+            else:
+                sub_tree[token_pattern[-1]]['pattern_idx'] =i
+            self.id2pattern.append(pattern)
+            self.pattern_vectors[i] = vector   
+        print('\nPattern tree has been built.', '\nWith totally {} patterns.\n'.format(i+1))
+    
+    def get_pattern_by_id(self, pid):
+        return self.id2pattern[pid]
+
+    def search_sub_tree(self, tokens, pat_tree):
+        patterns = []
+        len_tokens = len(tokens)
+        token = tokens[0] # check first word first
+        if token in pat_tree: # if token in token tree, it is a cw. search for following possible template
+            if  pat_tree.get(token).get('pattern_idx')!= -1:
+                patterns.append(pat_tree.get(token).get('pattern_idx'))
+            if len_tokens >1: # if not end, search next
+                sub_tree = pat_tree.get(token).get('sub_tree')
+                patterns += self.search_sub_tree(tokens[1:], sub_tree)
+        if '*' in pat_tree: # it is a '*'
+            token = '*'
+            if  pat_tree.get(token).get('pattern_idx')!= -1:
+                patterns.append(pat_tree.get(token).get('pattern_idx'))
+            sub_tree = pat_tree.get(token).get('sub_tree')
+            if len_tokens >1: # if not end, search next
+                patterns += self.search_sub_tree(tokens[1:], sub_tree)
+        return patterns
+    
+    def tree_match(self, text_token):
+        patterns = []
+        text_len = len(text_token)
+        # search pattern
+        for token_i in range(text_len-self.pattern_max_len+1): # get pivot
+            tokens = text_token[token_i: token_i+self.pattern_max_len]
+            patterns += self.search_sub_tree(tokens, self.pattern_tree.get('sub_tree'))
+        return patterns
+
+
+
 def listcwsw(df, threshold, key_col='token', val_col='value'):
     """
     return the `np.appry` type of CW/SW list
@@ -50,7 +113,7 @@ def text2pattern(row, pattern_templates, token_column='tokenized_text', cwsw_col
     for idx in range(len(tokenized_text)):
         for target_pattern in pattern_templates:
             target_pattern_len = len(target_pattern)
-            if idx + target_pattern_len >= len(tokenized_text):
+            if idx + target_pattern_len > len(tokenized_text):
                 continue
             patterns, pattern_temps = pattern_match(cwsw=cwsw_text[idx:idx+target_pattern_len], 
                                                     token=tokenized_text[idx:idx+target_pattern_len], 
@@ -220,7 +283,12 @@ def pattern_filter(row, pattern_col, patt_check_col):
     pattern_final = [patt for i, patt in enumerate(pattern) if patt_check[i]]
     return pattern_final
 
+
+
 ## ------------------------------------------------------------------------ ##
+##    past function    ##
+## ------------------------------------------------------------------------ ##
+
 
 def list_match(l1, l2):
     if len(l1) != len(l2):
@@ -321,78 +389,5 @@ def patternDict_past_(df, pattern_dict, label_list, pattern_templates,
 #                                                         workers=cores, axis=1)
 #     return df
 
-class PatternTree():
-    def __init__(self, df_pattern_weight, pattern_column, weight_columns):
-        
-        self.pattern_tree = {'sub_tree':{}}
-        self.pattern_vectors = np.zeros((df_pattern_weight.shape[0], len(weight_columns)))
-        self.id2pattern = []
-        self.pattern_max_len = max([len(pattern.split())
-                                    for pattern in df_pattern_weight[pattern_column].tolist()]
-                                  )
-    
-        self.build_tree(df_pattern_weight, pattern_column, weight_columns)
-    
-    def build_tree(self, df_pattern_weight, pattern_column, weight_columns):
-        for i, (pattern, vector) in enumerate(zip(df_pattern_weight[pattern_column],
-                                              df_pattern_weight[weight_columns].values)
-                                             ):
-
-            token_pattern = pattern.split()
-            token_len = len(token_pattern)
-            sub_tree = self.pattern_tree.get('sub_tree')
-
-            for w_i in range(token_len-1):
-                if sub_tree.get(token_pattern[w_i]) == None:
-                    sub_tree[token_pattern[w_i]] = {'pattern_idx':-1, 'sub_tree':{}}
-                sub_tree = sub_tree.get(token_pattern[w_i]).get('sub_tree')
-            # last token of pattern, insert pattern idx
-            if sub_tree.get(token_pattern[-1]) == None:
-                sub_tree[token_pattern[-1]] = {'pattern_idx':i, 'sub_tree':{}}
-            else:
-                sub_tree[token_pattern[-1]]['pattern_idx'] =i
-            self.id2pattern.append(pattern)
-
-            self.pattern_vectors[i] = vector   
-        print('\nPattern tree has been built.', '\nWith totally {} patterns.\n'.format(i+1))
-    
-    def get_pattern_by_id(self, pid):
-        return self.id2pattern[pid]
-
-    def search_sub_tree(self, tokens, pat_tree):
-        patterns = []
-        len_tokens = len(tokens)
-        token = tokens[0] # check first word first
-        if token in pat_tree: # if token in token tree, it is a cw. search for following possible template
-            if  pat_tree.get(token).get('pattern_idx')!= -1:
-                patterns.append(pat_tree.get(token).get('pattern_idx'))
-
-            if len_tokens >1: # if not end, search next
-                sub_tree = pat_tree.get(token).get('sub_tree')
-                patterns += self.search_sub_tree(tokens[1:], sub_tree)
-
-        if '*' in pat_tree: # it is a '*'
-            token = '*'
-            if  pat_tree.get(token).get('pattern_idx')!= -1:
-                patterns.append(pat_tree.get(token).get('pattern_idx'))
-
-            sub_tree = pat_tree.get(token).get('sub_tree')
-
-            if len_tokens >1: # if not end, search next
-                patterns += self.search_sub_tree(tokens[1:], sub_tree)
-
-        return patterns
-    
-    
-    def tree_match(self, text_token):
-        patterns = []
-        text_len = len(text_token)
-
-        # search pattern
-        for token_i in range(text_len-self.pattern_max_len+1): # get pivot
-            tokens = text_token[token_i: token_i+self.pattern_max_len]
-            patterns += self.search_sub_tree(tokens, self.pattern_tree.get('sub_tree'))
-
-        return patterns
 
 
