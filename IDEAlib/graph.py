@@ -13,7 +13,6 @@ import IDEAlib.utils as utils
 
 """
 TODO:
-1. minus graph function
 
 
 """
@@ -133,7 +132,19 @@ def measure_ec_cc(graph, show_time=False):
 
 
 def minus(G1, G2):
-    print('not finish, return G1')
+    st = time.time()
+    for edge_node in list(nx.edges(G1)):
+        if (edge_node[0] in G2) and (edge_node[1] in G2[edge_node[0]]):
+            
+            new_w = G1[edge_node[0]][edge_node[1]]['weight'] - G2[edge_node[0]][edge_node[1]]['weight']
+
+            if new_w > 0:
+                G1[edge_node[0]][edge_node[1]]['weight'] = new_w
+            
+            else:
+                G1.remove_edge(edge_node[0], edge_node[1])
+
+    print('Graph deduction spend: {} secs.'.format(time.time()-st))
     return G1
 
 def show(G, seed=9527):
