@@ -131,18 +131,20 @@ def measure_ec_cc(graph, show_time=False):
     return df_ec, df_cc
 
 
-def minus(G1, G2):
+def minus(G1, G2, rm_0_edge=True):
+    """
+    rm_0_edge: if True, reserve edges that their weight equal to 0
+    """
     st = time.time()
     for edge_node in list(nx.edges(G1)):
         if (edge_node[0] in G2) and (edge_node[1] in G2[edge_node[0]]):
             
             new_w = G1[edge_node[0]][edge_node[1]]['weight'] - G2[edge_node[0]][edge_node[1]]['weight']
-
-            if new_w > 0:
-                G1[edge_node[0]][edge_node[1]]['weight'] = new_w
-            
-            else:
+            if rm_0_edge and new_w<=0:
                 G1.remove_edge(edge_node[0], edge_node[1])
+            else:
+                G1[edge_node[0]][edge_node[1]]['weight'] = max(0, new_w)
+            
 
     print('Graph deduction spend: {} secs.'.format(time.time()-st))
     return G1
