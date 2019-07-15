@@ -181,7 +181,6 @@ def patternDict(df, pattern_col=None, pattern_content_col=None, pattern_template
 
     ## merge dict
     label_unique = np.unique(df[label_col].values)
-    print('label_unique: ', label_unique)
     pattern_dict = dict()
     for part_dict in part_dicks:
         for key in part_dict:
@@ -190,7 +189,12 @@ def patternDict(df, pattern_col=None, pattern_content_col=None, pattern_template
             else:
                 pattern_dict[key]['contents'] += part_dict[key]['contents']
                 for label_key in label_unique:
+                    # if (label_key not in part_dict[key]) or (label_key not in pattern_dict[key]) :
+                    #     part_dict[key][label_key] = 0
+                    #     pattern_dict[key][label_key] = 0
+                    
                     pattern_dict[key][label_key] += part_dict[key][label_key]
+
     return pattern_dict
 
 def patternDict_(df, col_list, str_type=True):
@@ -229,6 +233,44 @@ def patternDict_(df, col_list, str_type=True):
             part_dict[pattern]['contents'].append(pattern_content)
     return part_dict
 
+def merge_patternDict_DF(df, pattern_col=None, pattern_content_col=None, pattern_template_col=None, label_col=None, **kwargs):
+    """
+    If your dataset is too big to use orginal "idea.pattern.patternDict()" function, you can use this one to replace
+    "idea.pattern.patternDict()" and "idea.pattern.patternDF()". After this function, you can directly put the ouput to "idea.pattern.weight_pattern()"
+    """
+    manual_pattern_dict = dict()
+    for idx,row in df.iterrows():
+        for ith, pattern in enumerate(row[pattern_col]):
+            patt = " ".join(pattern)
+            if patt in manual_pattern_dict:
+                manual_pattern_dict[patt][row['class']] += 1
+                manual_pattern_dict[patt]['contents'].append(row[pattern_content_col][ith])
+                
+            else:
+                manual_pattern_dict[patt] = dict()
+                manual_pattern_dict[patt][0] = 0
+                manual_pattern_dict[patt][1] = 0
+                manual_pattern_dict[patt]['contents'] = [row[pattern_content_col][ith]]
+                manual_pattern_dict[patt]['template'] = " ".join(row[pattern_template_col][ith])
+                manual_pattern_dict[patt][row['class']] += 1
+
+    pattern = []; pattern_0 = []; pattern_1 = []
+    template = []; content = []
+    for key in manual_pattern_dict.keys():
+        pattern.append(key)
+        pattern_0.append(manual_pattern_dict[key][0])
+        pattern_1.append(manual_pattern_dict[key][1])
+        content.append(manual_pattern_dict[key]['contents'])
+        template.append(manual_pattern_dict[key]['template'])
+        
+    pattern_dict_DF = pd.DataFrame()
+    pattern_dict_DF['pattern'] = pattern
+    pattern_dict_DF[0.0] = pattern_0
+    pattern_dict_DF[1.0] = pattern_1
+    pattern_dict_DF['contents'] = content
+    pattern_dict_DF['template'] = template
+
+    return pattern_dict_DF
 
 
 def weight_pattern(df, label_list=['anger','sadness'], pattern_contents='contents',
@@ -258,7 +300,11 @@ def patternDF(pattern_dict, label_list):
     temp_list = [[] for _ in range(len(col_list))]
     for pattern in pattern_list:
         for i, col in enumerate(col_list):
-            temp_list[i].append(pattern_dict[pattern][col])
+            if col in pattern_dict[pattern]:
+                temp_list[i].append(pattern_dict[pattern][col])
+            else:
+                temp_list[i].append(None)
+
     for i, col in enumerate(col_list):
         df_pattern[col] = temp_list[i]
     return df_pattern
